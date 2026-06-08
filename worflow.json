@@ -1,0 +1,99 @@
+{
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [240, 0],
+      "id": "manual1",
+      "name": "Manual Trigger"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Input Sanitization\nconst raw = $json.article_text || $json.body || $json.text || \"\";\nconst cleanText = raw\n  .replace(/<[^>]*>/g, ' ')\n  .replace(/&nbsp;/g, ' ')\n  .replace(/&amp;/g, '&')\n  .replace(/\\s+/g, ' ')\n  .trim();\n\nif (cleanText.length < 300) {\n  throw new Error('Input too short. Please provide at least 300 characters.');\n}\n\nreturn { article_text: cleanText, word_count: cleanText.split(' ').length };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 0],
+      "id": "sanitize",
+      "name": "Sanitize & Validate"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.article_text }}",
+        "messages": {
+          "messageValues": [
+            {
+              "role": "system",
+              "message": "You are a world-class growth copywriter. Create platform-optimized content.\n\nOutput EXACTLY in this format (no extra text):\n\n---LINKEDIN---\n[Full LinkedIn post here]\n---TWITTER---\n[Tweet 1]\n[Tweet 2]\n[Tweet 3]\n---EMAIL---\n[Email teaser here]\n---INSTAGRAM---\n[Instagram caption + hashtags]\n---YOUTUBE---\nTitle: [Title here]\nDescription: [Description here]\n---SUMMARY---\n[Short summary here]"
+            }
+          ]
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [720, 0],
+      "id": "llm",
+      "name": "Multi-Format LLM Chain"
+    },
+    {
+      "parameters": {
+        "model": "llama-3.3-70b-versatile",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [720, 180],
+      "id": "groq",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Robust Parsing\nconst raw = $json.text || $json.content || '';\n\nconst extract = (start, end) => {\n  const s = raw.split(start)[1];\n  if (!s) return 'Content not generated';\n  return end ? s.split(end)[0].trim() : s.trim();\n};\n\nreturn {\n  linkedin_post: extract('---LINKEDIN---', '---TWITTER---'),\n  twitter_thread: extract('---TWITTER---', '---EMAIL---'),\n  email_teaser: extract('---EMAIL---', '---INSTAGRAM---'),\n  instagram_caption: extract('---INSTAGRAM---', '---YOUTUBE---'),\n  youtube_content: extract('---YOUTUBE---', '---SUMMARY---'),\n  summary: extract('---SUMMARY---'),\n  generated_at: new Date().toISOString(),\n  word_count: $json.word_count || 'N/A'\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [960, 0],
+      "id": "parser",
+      "name": "Parse Multi Outputs"
+    },
+    {
+      "parameters": {
+        "sendTo": "faisalmrasul13@gmail.com",
+        "subject": "🚀 Multi-Format Content Generated",
+        "message": "={{ '<p>Hi Faisal,</p><p>New content assets generated (' + $json.word_count + ' words).</p><h4>📧 Email Teaser</h4><p>' + $json.email_teaser + '</p><h4>💼 LinkedIn Post</h4><p>' + $json.linkedin_post + '</p><h4>🐦 Twitter Thread</h4><pre>' + $json.twitter_thread + '</pre><h4>📸 Instagram</h4><p>' + $json.instagram_caption + '</p><h4>▶️ YouTube</h4><p>' + $json.youtube_content + '</p><h4>📝 Summary</h4><p>' + $json.summary + '</p><p><em>Generated at: ' + $json.generated_at + '</em></p><p>Best,<br>AI Content Engine</p>' }}",
+        "options": {
+          "html": true
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [1200, 0],
+      "id": "gmail",
+      "name": "Send Summary Email",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Manual Trigger": { "main": [[{ "node": "Sanitize & Validate", "type": "main", "index": 0 }]] },
+    "Sanitize & Validate": { "main": [[{ "node": "Multi-Format LLM Chain", "type": "main", "index": 0 }]] },
+    "Multi-Format LLM Chain": { "main": [[{ "node": "Parse Multi Outputs", "type": "main", "index": 0 }]] },
+    "Parse Multi Outputs": { "main": [[{ "node": "Send Summary Email", "type": "main", "index": 0 }]] },
+    "Groq Chat Model": { "ai_languageModel": [[{ "node": "Multi-Format LLM Chain", "type": "ai_languageModel", "index": 0 }]] }
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  }
+}
