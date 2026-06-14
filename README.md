@@ -1,4 +1,4 @@
-# 🚀 n8n Multi-Format Content Repurposer
+# 🚀 𝐌𝐮𝐥𝐭𝐢-𝐅𝐨𝐫𝐦𝐚𝐭 𝐂𝐨𝐧𝐭𝐞𝐧𝐭 𝐑𝐞𝐩𝐮𝐫𝐩𝐨𝐬𝐞𝐫
 
 A powerful, production-grade automation workflow that takes long-form articles and automatically generates **platform-optimized content** for LinkedIn, Twitter/X, Email, Instagram, YouTube, and more — using advanced prompt engineering and Groq AI.
 <img width="1171" height="455" alt="image" src="https://github.com/user-attachments/assets/f1bb9c82-b20e-4e39-b2e4-c8d71b193532" />
